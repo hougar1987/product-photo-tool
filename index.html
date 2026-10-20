@@ -2,47 +2,102 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>ابزار عکس محصول — گام ۴</title>
+  <title>ابزار عکس محصول — گام ۵</title>
 </head>
 <body>
-  <h1>گام ۴ — ذخیره یک فایل</h1>
-  <p>عکس وسط کادر سفید ۱۰۰۰×۱۰۰۰ قرار می‌گیرد. دکمه ذخیره، همان یک فایل را دانلود می‌کند.</p>
-  <label>
-    انتخاب عکس
-    <input id="photo" type="file" accept="image/*" />
-  </label>
+  <h1>گام ۵ — حذف پس‌زمینه</h1>
+  <p>رنگ لبه‌ها پاک می‌شود و محصول وسط کادر سفید ۱۰۰۰ می‌نشیند.</p>
+  <label>انتخاب عکس <input id="photo" type="file" accept="image/*" /></label>
   <p id="status">عکسی انتخاب نشده.</p>
   <img id="preview" alt="" />
   <p><a id="save" hidden>ذخیره فایل</a></p>
   <script>
     var SIZE = 1000;
+    var THRESHOLD = 42;
     var input = document.querySelector("#photo");
     var status = document.querySelector("#status");
     var preview = document.querySelector("#preview");
     var save = document.querySelector("#save");
 
+    function cutEdges(img) {
+      var fit = Math.min(1, 800 / Math.max(img.width, img.height));
+      var w = Math.max(1, Math.round(img.width * fit));
+      var h = Math.max(1, Math.round(img.height * fit));
+      var work = document.createElement("canvas");
+      work.width = w;
+      work.height = h;
+      var ctx = work.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      var image = ctx.getImageData(0, 0, w, h);
+      var data = image.data;
+      var r = 0, g = 0, b = 0, n = 0;
+      function take(x, y) {
+        var o = (y * w + x) * 4;
+        r += data[o]; g += data[o + 1]; b += data[o + 2]; n += 1;
+      }
+      var sx = Math.max(1, Math.floor(w / 20));
+      var sy = Math.max(1, Math.floor(h / 20));
+      for (var x = 0; x < w; x += sx) { take(x, 0); take(x, h - 1); }
+      for (var y = 0; y < h; y += sy) { take(0, y); take(w - 1, y); }
+      r /= n; g /= n; b /= n;
+      var seen = new Uint8Array(w * h);
+      var queue = new Int32Array(w * h);
+      var head = 0, tail = 0;
+      function push(x, y) {
+        if (x < 0 || y < 0 || x >= w || y >= h) return;
+        var i = y * w + x;
+        if (seen[i]) return;
+        var o = i * 4;
+        var dist = Math.abs(data[o] - r) + Math.abs(data[o + 1] - g) + Math.abs(data[o + 2] - b);
+        if (dist > THRESHOLD) return;
+        seen[i] = 1;
+        queue[tail++] = i;
+      }
+      for (var ex = 0; ex < w; ex++) { push(ex, 0); push(ex, h - 1); }
+      for (var ey = 0; ey < h; ey++) { push(0, ey); push(w - 1, ey); }
+      while (head < tail) {
+        var i = queue[head++];
+        data[i * 4 + 3] = 0;
+        var px = i % w;
+        var py = (i - px) / w;
+        push(px + 1, py); push(px - 1, py); push(px, py + 1); push(px, py - 1);
+      }
+      var minX = w, minY = h, maxX = 0, maxY = 0, any = false;
+      for (var yy = 0; yy < h; yy++) {
+        for (var xx = 0; xx < w; xx++) {
+          if (data[(yy * w + xx) * 4 + 3] === 0) continue;
+          any = true;
+          if (xx < minX) minX = xx;
+          if (yy < minY) minY = yy;
+          if (xx > maxX) maxX = xx;
+          if (yy > maxY) maxY = yy;
+        }
+      }
+      if (!any) return null;
+      ctx.putImageData(image, 0, 0);
+      return { canvas: work, minX: minX, minY: minY, cropW: maxX - minX + 1, cropH: maxY - minY + 1 };
+    }
+
     input.addEventListener("change", function () {
       var file = input.files && input.files[0];
-      if (!file) {
-        preview.removeAttribute("src");
-        save.hidden = true;
-        status.textContent = "عکسی انتخاب نشده.";
-        return;
-      }
+      if (!file) return;
       var src = URL.createObjectURL(file);
       var img = new Image();
       img.onload = function () {
+        var cut = cutEdges(img);
+        URL.revokeObjectURL(src);
+        if (!cut) return;
         var canvas = document.createElement("canvas");
         canvas.width = SIZE;
         canvas.height = SIZE;
         var ctx = canvas.getContext("2d");
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, SIZE, SIZE);
-        var scale = Math.min(SIZE / img.width, SIZE / img.height);
-        var w = img.width * scale;
-        var h = img.height * scale;
-        ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
-        URL.revokeObjectURL(src);
+        var box = SIZE * 0.84;
+        var scale = Math.min(box / cut.cropW, box / cut.cropH);
+        var dw = cut.cropW * scale;
+        var dh = cut.cropH * scale;
+        ctx.drawImage(cut.canvas, cut.minX, cut.minY, cut.cropW, cut.cropH, (SIZE - dw) / 2, (SIZE - dh) / 2, dw, dh);
         var stem = file.name.replace(/\.[^.]+$/, "").trim() || "product";
         var fileName = stem + "-1000.jpg";
         var dataUrl = canvas.toDataURL("image/jpeg", 0.9);
