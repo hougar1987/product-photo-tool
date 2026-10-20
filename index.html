@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>ابزار عکس محصول — گام ۱</title>
+</head>
+<body>
+  <h1>گام ۱ — انتخاب عکس</h1>
+  <p>یک عکس از کامپیوتر انتخاب کنید. فقط اسم فایل نشان داده می‌شود.</p>
+  <input id="photo" type="file" accept="image/*" />
+  <p id="status">عکسی انتخاب نشده.</p>
+  <script>
+    var input = document.querySelector("#photo");
+    var status = document.querySelector("#status");
+    input.addEventListener("change", function () {
+      var file = input.files && input.files[0];
+      status.textContent = file ? "انتخاب شد: " + file.name : "عکسی انتخاب نشده.";
+    });
+  </script>
+</body>
+</html>
