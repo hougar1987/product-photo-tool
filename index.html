@@ -2,27 +2,30 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>ابزار عکس محصول — گام ۳</title>
+  <title>ابزار عکس محصول — گام ۴</title>
 </head>
 <body>
-  <h1>گام ۳ — کادر مربع</h1>
-  <p>عکس وسط کادر سفید ۱۰۰۰×۱۰۰۰ قرار می‌گیرد. هنوز ذخیره نمی‌شود.</p>
+  <h1>گام ۴ — ذخیره یک فایل</h1>
+  <p>عکس وسط کادر سفید ۱۰۰۰×۱۰۰۰ قرار می‌گیرد. دکمه ذخیره، همان یک فایل را دانلود می‌کند.</p>
   <label>
     انتخاب عکس
     <input id="photo" type="file" accept="image/*" />
   </label>
   <p id="status">عکسی انتخاب نشده.</p>
   <img id="preview" alt="" />
+  <p><a id="save" hidden>ذخیره فایل</a></p>
   <script>
     var SIZE = 1000;
     var input = document.querySelector("#photo");
     var status = document.querySelector("#status");
     var preview = document.querySelector("#preview");
+    var save = document.querySelector("#save");
 
     input.addEventListener("change", function () {
       var file = input.files && input.files[0];
       if (!file) {
         preview.removeAttribute("src");
+        save.hidden = true;
         status.textContent = "عکسی انتخاب نشده.";
         return;
       }
@@ -41,9 +44,14 @@
         ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
         URL.revokeObjectURL(src);
         var stem = file.name.replace(/\.[^.]+$/, "").trim() || "product";
-        preview.src = canvas.toDataURL("image/jpeg", 0.9);
-        preview.alt = stem + "-1000.jpg";
-        status.textContent = "نام فایل: " + stem + "-1000.jpg";
+        var fileName = stem + "-1000.jpg";
+        var dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        preview.src = dataUrl;
+        preview.alt = fileName;
+        save.href = dataUrl;
+        save.download = fileName;
+        save.hidden = false;
+        status.textContent = "نام فایل: " + fileName;
       };
       img.src = src;
     });
