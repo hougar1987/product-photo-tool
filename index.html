@@ -7,7 +7,10 @@
 <body>
   <h1>گام ۱ — انتخاب عکس</h1>
   <p>یک عکس از کامپیوتر انتخاب کنید. فقط اسم فایل نشان داده می‌شود.</p>
-  <input id="photo" type="file" accept="image/*" />
+  <label>
+    انتخاب عکس
+    <input id="photo" type="file" accept="image/*" />
+  </label>
   <p id="status">عکسی انتخاب نشده.</p>
   <script>
     var input = document.querySelector("#photo");
